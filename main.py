@@ -120,3 +120,75 @@ def imshow(inp, title):
 inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
+# Finetuning the pretrained model
+from torchvision import models
+
+model = models.alexnet(pretrained=True)
+model
+num_ftrs = model.classifier[6].in_features
+num_ftrs
+
+#Redefining the last layer to classify inputs into the two classes we need as opposed to the original 1000 it was trained for.
+model.classifier[6] = nn.Linear(num_ftrs, len(train_dataset.classes))
+criterion   = nn.CrossEntropyLoss()
+
+optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
+def train_model(model, criterion, optimizer, num_epochs=25):
+
+    model = model.to(device)
+    total_step = len(dataloaders['train'])
+
+
+    for epoch in range(num_epochs):
+        print('epoch=',epoch)        
+
+        for images, labels  in (dataloaders['train']):
+
+                images = images.to(device)
+                labels = labels.to(device)
+    
+                outputs = model(images)
+                outputs = outputs.to(device)
+                loss = criterion(outputs,labels)
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+        print('Epoch - %d, loss - %0.5f '\
+            %(epoch, loss.item()))
+
+    return model
+model = train_model(model, criterion, optimizer, num_epochs=10)
+# Model Evaluation
+model.eval() #batchnorm or dropout layers will now work in eval mode instead of training mode.
+torch.no_grad() #sets all the requires_grad flag to false and stops all gradient calculation.
+correct = 0
+total = 0
+
+for images, labels in dataloaders['test']:
+
+    images = images.to(device)
+    labels = labels.to(device)
+
+    outputs = model(images)
+    _, predicted = torch.max(outputs.data, 1)
+
+    total += labels.size(0)
+    correct += (predicted == labels).sum().item()
+
+print('Accuracy of the model on the test images: {}%'\
+      .format(100 * correct / total))
+inputs, labels = iter(dataloaders['test']).next()
+
+inputs = inputs.to(device)
+inp = torchvision.utils.make_grid(inputs)
+
+outputs = model(inputs)
+_, preds = torch.max(outputs, 1)
+
+for j in range(len(inputs)):
+    print ("Acutal label", np.array(labels)[j])
+
+    inp = inputs.data[j]
+    imshow(inp, 'predicted:' + class_names[preds[j]])
