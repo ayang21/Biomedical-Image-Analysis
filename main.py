@@ -75,11 +75,11 @@ test_transform = transforms.Compose([
     transforms.Normalize(mean=mean,
                          std=std)
 ])
-train_dataset = datasets.ImageFolder(root=dataset_dir,
-                                  transform=train_transform)
+train_dataset = datasets.ImageFolder(root=base_path,
+                                  transform=train_transform) #replaced dataset_dir with base_path
 
-test_dataset = datasets.ImageFolder(root=dataset_dir,
-                                  transform=test_transform)
+test_dataset = datasets.ImageFolder(root=base_path,
+                                  transform=test_transform) #replaced dataset_dir with base_path
 dataset_size = len(train_dataset)
 indices = list(range(dataset_size))
 split = int(np.floor(test_size * dataset_size))
