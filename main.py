@@ -102,3 +102,21 @@ dataloaders = {
     'train': train_loader,
     'test': test_loader
 }
+# Explore data set
+class_names = train_dataset.classes
+
+print(class_names)
+def imshow(inp, title):
+
+    inp = inp.cpu().numpy().transpose((1, 2, 0))
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
+    
+    plt.figure (figsize = (12, 6))
+
+    plt.imshow(inp)
+    plt.title(title)
+    plt.pause(5)  
+inputs, classes = next(iter(dataloaders['train']))
+out = torchvision.utils.make_grid(inputs)
+imshow(out, title=[class_names[x] for x in classes])
