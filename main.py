@@ -6,21 +6,37 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-import torchvision
-from torchvision import datasets,transforms 
 from torch.utils.data.sampler import SubsetRandomSampler
 
-import dataset_tools as dtools
+import torchvision
+from torchvision import datasets,transforms, models
 
-dtools.download(dataset='TBX11K', dst_dir='dataset-ninja/')
+import requests
+import pandas as pd
+from io import StringIO
+
+# URL of the dataset
+url = "http://example.com/dataset.csv"
+
+# Send HTTP request
+response = requests.get(url)
+
+# Make sure the request was successful
+assert response.status_code == 200
+
+# Get the content of the response
+data = response.content.decode('utf-8')
+
+# Read the data into a DataFrame
+df = pd.read_csv(StringIO(data))
+
 
 file_ext = "png"
 clf_result = "normal"
 
-base_path = 'dataset-ninja/tbx11k/'
-normal_destination_path = 'drive/MyDrive/tb-detection/data-normal/'
-tb_destination_path = 'drive/MyDrive/tb-detection/data-tb/'
+base_path = 'dataset-ninja/'
+normal_destination_path = 'data-normal/'
+tb_destination_path = 'data-tb/'
 
 test_ann_path = base_path + 'test/ann/'
 test_img_path = base_path + 'test/img/'
@@ -38,7 +54,7 @@ img_directory = [test_img_path, train_img_path, val_img_path]
 
 for i in range(len(ann_directory)):
     for file in os.listdir(ann_directory[i]):
-        imgname = file[:-len(file_ext)] + file_ext
+        imgname = file[:-len(file_ext)-1]
         with open(os.path.join(ann_directory[i],file)) as report:
             for line in report:
                 if clf_result in line:
@@ -46,6 +62,8 @@ for i in range(len(ann_directory)):
                     break
             else:
                 shutil.copy(img_directory[i] + imgname, tb_destination_path + imgname)
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 #Load and preprocess data
 #Splitting the dataset into train and test using the SubsetSampler class
@@ -121,7 +139,6 @@ inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
 # Finetuning the pretrained model
-from torchvision import models
 
 model = models.alexnet(pretrained=True)
 model
@@ -192,3 +209,4 @@ for j in range(len(inputs)):
 
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
+
