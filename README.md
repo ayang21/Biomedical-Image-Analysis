@@ -1,4 +1,3 @@
-# Biomedical-Image-Analysis
-We will be using pytorch image analysis to detect tuberculosis in patients 
+# Tuberculosis X-ray
 
-Code will be based on https://github.com/judytraj007/TuberculosisDetection 's model for imaging
+TBX11K is a dataset for object detection task.
