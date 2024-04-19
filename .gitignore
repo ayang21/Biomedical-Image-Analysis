@@ -1,5 +1,7 @@
-data-tb/
-
 tbx11k-DatasetNinja/
 
-data-normal/
+/test-data/unknown/
+/train-data/data-normal/
+/train-data/data-sick/
+/train-data/data-tb/
+/validation-data/val/
