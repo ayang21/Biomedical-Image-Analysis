@@ -13,11 +13,19 @@ from torchvision import datasets,transforms, models
 
 
 file_ext = "png"
-clf_result = "normal"
 
 base_path = 'tbx11k-DatasetNinja/'
+<<<<<<< Updated upstream
 normal_destination_path = 'data-normal/'
 tb_destination_path = 'data-tb/'
+=======
+train_path = 'train-data/'
+test_path = 'test-data/'
+validation_path = 'validation-data/'
+normal_destination_path = 'data-normal/'
+tb_destination_path = 'data-tb/'
+sick_destination_path = 'data-sick/'
+>>>>>>> Stashed changes
 
 test_ann_path = base_path + 'test/ann/'
 test_img_path = base_path + 'test/img/'
@@ -28,14 +36,93 @@ train_img_path = base_path + 'train/img/'
 val_ann_path = base_path + 'val/ann/'
 val_img_path = base_path + 'val/img/'
 
-ann_directory = [test_ann_path, train_ann_path, val_ann_path]
-img_directory = [test_img_path, train_img_path, val_img_path]
+# Organize train data into a class strucutre with normal, tb and sick folders
+for file in os.listdir(train_ann_path):
+    # Remove .json extension
+    imgname = file[:-5]
 
-# Collect data
+    # Checks if healthy_result (annotation of normal) is in report, if so, copy to normal_destination_path else copy to tb_destination_path
+    if imgname[0] == 'h':
+        shutil.copy(train_img_path + imgname, train_path + normal_destination_path + imgname)
+    elif imgname[0] == 's':
+        shutil.copy(train_img_path + imgname, train_path + sick_destination_path + imgname)
+    else:
+        shutil.copy(train_img_path + imgname, train_path + tb_destination_path + imgname)
 
-# Skip the validation set for now
-for i in range(len(ann_directory) - 1):
+# Organize test data into a class strucutre with unknown
+for file in os.listdir(test_ann_path):
+    # Remove .json extension
+    imgname = file[:-5]
+
+    shutil.copy(test_img_path + imgname, test_img_path + 'unknown/' + imgname)
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+#Load and preprocess data
+#Splitting the dataset into train and test using the SubsetSampler class
+#To apply two different sets of transforms to train and test, I'm loading the dataset twice.
+#I've applied resize so as to make the images smaller and thus model training faster. Models trained on smaller images tend to not overfit and generalize well for larger images.
+#I've also added a random crop and random flip to augment the dataset further.
+
+#The mean and standard deviation of the ImageNet data Alexnet was trained on.
+mean = [0.485, 0.456, 0.406] # WILL NEED TO CHANGE THIS
+std  = [0.229, 0.224, 0.225] # WILL NEED TO CHANGE THIS
+
+
+test_size = 0.30
+random_seed = 24
+num_workers = 0
+batch_size = 8
+
+train_transform = transforms.Compose([
+    transforms.Resize(256),
+    transforms.RandomCrop(224),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=mean,
+                         std=std)
+])
+test_transform = transforms.Compose([
+    transforms.Resize(256),    
+    transforms.RandomCrop(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=mean,
+                         std=std)
+])
+
+# Load the train dataset with transform
+train_dataset = datasets.ImageFolder(root=train_path,
+                                  transform=train_transform) #replaced dataset_dir with base_path
+
+# Load the test dataset with transform
+test_dataset = datasets.ImageFolder(root=test_path,
+                                  transform=test_transform) #replaced dataset_dir with base_path
+
+# Create data loaders
+train_loader = torch.utils.data.DataLoader(train_dataset, 
+                                           batch_size=batch_size, 
+                                           num_workers=num_workers)
+
+test_loader = torch.utils.data.DataLoader(test_dataset, 
+                                          batch_size=batch_size, 
+                                          num_workers=num_workers)
+dataloaders = {
+    'train': train_loader,
+    'test': test_loader
+}
+# Explore data set
+class_names = train_dataset.classes
+
+print(class_names)
+
+# Function to display images
+def imshow(inp, title):
+
+    inp = inp.cpu().numpy().transpose((1, 2, 0))
+    inp = std * inp + mean
+    inp = np.clip(inp, 0, 1)
     
+<<<<<<< Updated upstream
     # Loop through each file in the directory, going from test to train data
     for file in os.listdir(ann_directory[i]):
          imgname = file[:-len(file_ext)-1]
@@ -48,13 +135,16 @@ for i in range(len(ann_directory) - 1):
                  shutil.copy(img_directory[i] + imgname, tb_destination_path + imgname)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+=======
+    plt.figure (figsize = (12, 6))
 
-# #Load and preprocess data
-# #Splitting the dataset into train and test using the SubsetSampler class
-# #To apply two different sets of transforms to train and test, I'm loading the dataset twice.
-# #I've applied resize so as to make the images smaller and thus model training faster. Models trained on smaller images tend to not overfit and generalize well for larger images.
-# #I've also added a random crop and random flip to augment the dataset further.
+    plt.imshow(inp)
+    plt.title(title)
+    plt.pause(5)  
+>>>>>>> Stashed changes
 
+
+<<<<<<< Updated upstream
 # #The mean and standard deviation of the ImageNet data Alexnet was trained on.
 mean = [0.485, 0.456, 0.406]
 std  = [0.229, 0.224, 0.225] 
@@ -151,6 +241,28 @@ def train_model(model, criterion, optimizer, num_epochs=25):
     model = model.to(device)
     total_step = len(dataloaders['train'])
 
+=======
+inputs, classes = next(iter(dataloaders['train']))
+out = torchvision.utils.make_grid(inputs)
+imshow(out, title=[class_names[x] for x in classes])
+# Finetuning the pretrained model
+
+model = models.alexnet(pretrained=True)
+model
+num_ftrs = model.classifier[6].in_features
+num_ftrs
+
+#Redefining the last layer to classify inputs into the two classes we need as opposed to the original 1000 it was trained for.
+model.classifier[6] = nn.Linear(num_ftrs, len(train_dataset.classes))
+criterion   = nn.CrossEntropyLoss()
+
+optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
+def train_model(model, criterion, optimizer, num_epochs=25):
+
+    model = model.to(device)
+    total_step = len(dataloaders['train'])
+
+>>>>>>> Stashed changes
 
     for epoch in range(num_epochs):
         print('epoch=',epoch)        
@@ -202,7 +314,12 @@ _, preds = torch.max(outputs, 1)
 
 for j in range(len(inputs)):
     print ("Acutal label", np.array(labels)[j])
+<<<<<<< Updated upstream
 
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
+=======
+>>>>>>> Stashed changes
 
+    inp = inputs.data[j]
+    imshow(inp, 'predicted:' + class_names[preds[j]])
