@@ -198,7 +198,7 @@ for images, labels in dataloaders['test']:
 
 print('Accuracy of the model on the test images: {}%'\
       .format(100 * correct / total))
-inputs, labels = iter(dataloaders['test']).next()
+inputs, labels = next(iter(dataloaders['test']))
 
 inputs = inputs.to(device)
 inp = torchvision.utils.make_grid(inputs)
