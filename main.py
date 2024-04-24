@@ -49,7 +49,7 @@ for file in os.listdir(test_ann_path):
     # Remove .json extension
     imgname = file[:-5]
 
-    shutil.copy(test_img_path + imgname, test_img_path + 'unknown/' + imgname)
+    shutil.copy(test_img_path + imgname, test_path + 'unknown/' + imgname)
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
