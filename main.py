@@ -112,71 +112,6 @@ print(class_names)
 
 # Function to display images
 def imshow(inp, title):
-
-    inp = inp.cpu().numpy().transpose((1, 2, 0))
-    inp = std * inp + mean
-    inp = np.clip(inp, 0, 1)
-    
-    plt.figure (figsize = (12, 6))
-
-    plt.imshow(inp)
-    plt.title(title)
-    plt.pause(5)  
-
-# #The mean and standard deviation of the ImageNet data Alexnet was trained on.
-mean = [0.485, 0.456, 0.406]
-std  = [0.229, 0.224, 0.225] 
-test_size = 0.30
-random_seed = 24
-num_workers = 0
-batch_size = 8
-train_transform = transforms.Compose([
-     transforms.Resize(256),
-     transforms.RandomCrop(224),
-     transforms.RandomHorizontalFlip(),
-     transforms.ToTensor(),
-     transforms.Normalize(mean=mean,
-                          std=std)
- ])
-test_transform = transforms.Compose([
-     transforms.Resize(256),    
-     transforms.RandomCrop(224),
-     transforms.ToTensor(),
-     transforms.Normalize(mean=mean,
-                          std=std)
- ])
-train_dataset = datasets.ImageFolder(root=base_path,
-                                   transform=train_transform) #replaced dataset_dir with base_path
-
-test_dataset = datasets.ImageFolder(root=base_path,
-                                   transform=test_transform) #replaced dataset_dir with base_path
-dataset_size = len(train_dataset)
-indices = list(range(dataset_size))
-split = int(np.floor(test_size * dataset_size))
-np.random.seed(random_seed)
-np.random.shuffle(indices)
-train_idx, test_idx = indices[split:], indices[:split]
-train_sampler = SubsetRandomSampler(train_idx)
-test_sampler = SubsetRandomSampler(test_idx)
-
-train_loader = torch.utils.data.DataLoader(train_dataset, 
-                                            batch_size=batch_size, 
-                                            sampler=train_sampler,
-                                           num_workers=num_workers)
-
-test_loader = torch.utils.data.DataLoader(test_dataset, 
-                                          batch_size=batch_size, 
-                                          sampler=test_sampler,
-                                          num_workers=num_workers)
-dataloaders = {
-    'train': train_loader,
-    'test': test_loader
-}
-# Explore data set
-class_names = train_dataset.classes
-
-print(class_names) #output=['test', 'train', 'val']
-def imshow(inp, title):
     # Converts a PyTorch tensor 'inp' to a numpy array and transposes the dimensions
     # from (channel, height, width) to (height, width, channel) for display purposes.
     inp = inp.cpu().numpy().transpose((1, 2, 0))
@@ -193,6 +128,7 @@ def imshow(inp, title):
     # Pauses the display for 5 seconds, allowing the image to be visible for this duration.
     # This is useful in interactive environments where the output might otherwise be too fleeting.
     plt.pause(5)  
+
 # Fetches a batch of inputs and their corresponding classes from the 'train' data loader.
 inputs, classes = next(iter(dataloaders['train']))
 # Utilizes torchvision's utility to make a grid of images from the batch, which helps in visualizing multiple images simultaneously.
@@ -208,16 +144,6 @@ model = models.alexnet(pretrained=True)
 model
 num_ftrs = model.classifier[6].in_features
 num_ftrs
-
-#Redefining the last layer to classify inputs into the two classes we need as opposed to the original 1000 it was trained for.
-model.classifier[6] = nn.Linear(num_ftrs, len(train_dataset.classes))
-criterion   = nn.CrossEntropyLoss()
-
-optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
-def train_model(model, criterion, optimizer, num_epochs=25):
-
-    model = model.to(device)
-    total_step = len(dataloaders['train'])
 
 inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
