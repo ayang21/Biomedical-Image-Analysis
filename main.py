@@ -15,17 +15,12 @@ from torchvision import datasets,transforms, models
 file_ext = "png"
 
 base_path = 'tbx11k-DatasetNinja/'
-<<<<<<< Updated upstream
-normal_destination_path = 'data-normal/'
-tb_destination_path = 'data-tb/'
-=======
 train_path = 'train-data/'
 test_path = 'test-data/'
 validation_path = 'validation-data/'
 normal_destination_path = 'data-normal/'
 tb_destination_path = 'data-tb/'
 sick_destination_path = 'data-sick/'
->>>>>>> Stashed changes
 
 test_ann_path = base_path + 'test/ann/'
 test_img_path = base_path + 'test/img/'
@@ -122,29 +117,12 @@ def imshow(inp, title):
     inp = std * inp + mean
     inp = np.clip(inp, 0, 1)
     
-<<<<<<< Updated upstream
-    # Loop through each file in the directory, going from test to train data
-    for file in os.listdir(ann_directory[i]):
-         imgname = file[:-len(file_ext)-1]
-         with open(os.path.join(ann_directory[i],file)) as report:
-             for line in report:
-                 if clf_result in line:
-                     shutil.copy(img_directory[i] + imgname, normal_destination_path + imgname)
-                     break
-             else:
-                 shutil.copy(img_directory[i] + imgname, tb_destination_path + imgname)
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-=======
     plt.figure (figsize = (12, 6))
 
     plt.imshow(inp)
     plt.title(title)
     plt.pause(5)  
->>>>>>> Stashed changes
 
-
-<<<<<<< Updated upstream
 # #The mean and standard deviation of the ImageNet data Alexnet was trained on.
 mean = [0.485, 0.456, 0.406]
 std  = [0.229, 0.224, 0.225] 
@@ -241,7 +219,6 @@ def train_model(model, criterion, optimizer, num_epochs=25):
     model = model.to(device)
     total_step = len(dataloaders['train'])
 
-=======
 inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
@@ -262,7 +239,6 @@ def train_model(model, criterion, optimizer, num_epochs=25):
     model = model.to(device)
     total_step = len(dataloaders['train'])
 
->>>>>>> Stashed changes
 
     for epoch in range(num_epochs):
         print('epoch=',epoch)        
@@ -314,12 +290,6 @@ _, preds = torch.max(outputs, 1)
 
 for j in range(len(inputs)):
     print ("Acutal label", np.array(labels)[j])
-<<<<<<< Updated upstream
-
-    inp = inputs.data[j]
-    imshow(inp, 'predicted:' + class_names[preds[j]])
-=======
->>>>>>> Stashed changes
 
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
