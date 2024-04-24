@@ -96,11 +96,11 @@ test_dataset = datasets.ImageFolder(root=test_path,
 # Create data loaders
 train_loader = torch.utils.data.DataLoader(train_dataset, 
                                            batch_size=batch_size, 
-                                           num_workers=num_workers)
+                                           num_workers=num_workers, shuffle=True)
 
 test_loader = torch.utils.data.DataLoader(test_dataset, 
                                           batch_size=batch_size, 
-                                          num_workers=num_workers)
+                                          num_workers=num_workers, shuffle=True)
 dataloaders = {
     'train': train_loader,
     'test': test_loader
@@ -131,12 +131,15 @@ def imshow(inp, title):
 
 # Fetches a batch of inputs and their corresponding classes from the 'train' data loader.
 inputs, classes = next(iter(dataloaders['train']))
+
 # Utilizes torchvision's utility to make a grid of images from the batch, which helps in visualizing multiple images simultaneously.
 out = torchvision.utils.make_grid(inputs)
-# Calls the imshow function defined above to display the grid of images with class names as titles.
+# Calls the imshow function defined above to display the grid of images with class names as titles. 
 imshow(out, title=[class_names[x] for x in classes])
 print(classes) #output=tensor([0, 2, 1, 0, 0, 1, 1, 1])
 print([class_names[x] for x in classes]) #output=['test', 'val', 'test', 'val', 'val', 'train', 'train', 'test']
+print(train_dataset.classes)
+print(train_dataset.class_to_idx)
 
 # Finetuning the pretrained model
 
