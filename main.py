@@ -138,9 +138,6 @@ imshow(out, title=[class_names[x] for x in classes])
 print(classes) #output=tensor([0, 2, 1, 0, 0, 1, 1, 1])
 print([class_names[x] for x in classes]) #output=['test', 'val', 'test', 'val', 'val', 'train', 'train', 'test']
 
-inputs, classes = next(iter(dataloaders['train']))
-out = torchvision.utils.make_grid(inputs)
-imshow(out, title=[class_names[x] for x in classes])
 # Finetuning the pretrained model
 
 model = models.alexnet(pretrained=True)
@@ -157,7 +154,6 @@ def train_model(model, criterion, optimizer, num_epochs=25):
 
     model = model.to(device)
     total_step = len(dataloaders['train'])
-
 
     for epoch in range(num_epochs):
         print('epoch=',epoch)        
