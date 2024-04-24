@@ -138,13 +138,6 @@ imshow(out, title=[class_names[x] for x in classes])
 print(classes) #output=tensor([0, 2, 1, 0, 0, 1, 1, 1])
 print([class_names[x] for x in classes]) #output=['test', 'val', 'test', 'val', 'val', 'train', 'train', 'test']
 
-# Finetuning the pretrained model
-
-model = models.alexnet(pretrained=True)
-model
-num_ftrs = model.classifier[6].in_features
-num_ftrs
-
 inputs, classes = next(iter(dataloaders['train']))
 out = torchvision.utils.make_grid(inputs)
 imshow(out, title=[class_names[x] for x in classes])
