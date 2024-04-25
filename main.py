@@ -44,6 +44,19 @@ for file in os.listdir(train_ann_path):
     else:
         shutil.copy(train_img_path + imgname, train_path + tb_destination_path + imgname)
 
+# Organize validation data into a class strucutre with normal, tb and sick folders
+for file in os.listdir(val_ann_path):
+    # Remove .json extension
+    imgname = file[:-5]
+
+    # Checks if healthy_result (annotation of normal) is in report, if so, copy to normal_destination_path else copy to tb_destination_path
+    if imgname[0] == 'h':
+        shutil.copy(val_img_path + imgname, validation_path + normal_destination_path + imgname)
+    elif imgname[0] == 's':
+        shutil.copy(val_img_path + imgname, validation_path + sick_destination_path + imgname)
+    else:
+        shutil.copy(val_img_path + imgname, validation_path + tb_destination_path + imgname)
+
 # Organize test data into a class strucutre with unknown
 for file in os.listdir(test_ann_path):
     # Remove .json extension
@@ -93,6 +106,11 @@ train_dataset = datasets.ImageFolder(root=train_path,
 test_dataset = datasets.ImageFolder(root=test_path,
                                   transform=test_transform) #replaced dataset_dir with base_path
 
+# Load the validation dataset with transform
+validation_dataset = datasets.ImageFolder(root=validation_path,
+                                         transform=test_transform)
+
+
 # Create data loaders
 train_loader = torch.utils.data.DataLoader(train_dataset, 
                                            batch_size=batch_size, 
@@ -101,9 +119,16 @@ train_loader = torch.utils.data.DataLoader(train_dataset,
 test_loader = torch.utils.data.DataLoader(test_dataset, 
                                           batch_size=batch_size, 
                                           num_workers=num_workers, shuffle=True)
+
+# Create data loader for validation data
+validation_loader = torch.utils.data.DataLoader(validation_dataset, 
+                                                batch_size=batch_size, 
+                                                num_workers=num_workers, shuffle=True)
+
 dataloaders = {
     'train': train_loader,
-    'test': test_loader
+    'test': test_loader,
+    'validation': validation_loader
 }
 # Explore data set
 class_names = train_dataset.classes
@@ -156,7 +181,6 @@ optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
 def train_model(model, criterion, optimizer, num_epochs=25):
 
     model = model.to(device)
-    total_step = len(dataloaders['train'])
 
     for epoch in range(num_epochs):
         print('epoch=',epoch)        
@@ -207,7 +231,7 @@ outputs = model(inputs)
 _, preds = torch.max(outputs, 1)
 
 for j in range(len(inputs)):
-    print ("Acutal label", np.array(labels)[j])
+    print ("Actual label", np.array(labels)[j])
 
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
