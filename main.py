@@ -46,7 +46,7 @@ def train_model(model, criterion, optimizer, train_loader, valid_loader, num_epo
 
     for epoch in range(num_epochs):
         print('=' * 10)
-        print('epoch=',epoch)
+        print('epoch=',epoch + 1)
 
         for phase in ['train', 'validation']:
             if phase == 'train':
@@ -249,7 +249,7 @@ criterion   = nn.CrossEntropyLoss()
 optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
 
 #Cross validate the model during training phase to see model's generalization of data
-model, history = cross_validate_model(model, criterion, optimizer, train_dataset, num_epochs=1) # Change the num_epochs to however many per folds you wish to perform
+model, history = cross_validate_model(model, criterion, optimizer, train_dataset, num_epochs=5) # Change the num_epochs to however many per folds you wish to perform
 
 # model, history = train_model(model, criterion, optimizer, num_epochs=10)
 
@@ -276,7 +276,7 @@ plt.show()
 # Model Evaluation
 model.eval() #batchnorm or dropout layers will now work in eval mode instead of training mode.
 torch.no_grad() #sets all the requires_grad flag to false and stops all gradient calculation.
-correct = 0
+accuracies = []
 total = 0
 
 for images, labels in dataloaders['test']:
@@ -288,10 +288,16 @@ for images, labels in dataloaders['test']:
     _, predicted = torch.max(outputs.data, 1)
 
     total += labels.size(0)
-    correct += (predicted == labels).sum().item()
+    correct = (predicted == labels).sum().item()
+    accuracies.append(correct / labels.size(0))
 
-print('Accuracy of the model on the test images: {}%'\
-      .format(100 * correct / total))
+# Plot testing accuracy
+plt.figure()
+plt.plot(accuracies)
+plt.title('Accuracy over test data')
+plt.xlabel('Batch')
+plt.ylabel('Accuracy')
+plt.show()
 
 inputs, labels = next(iter(dataloaders['test']))
 
