@@ -234,7 +234,7 @@ inputs, classes = next(iter(dataloaders['train']))
 
 # Utilizes torchvision's utility to make a grid of images from the batch, which helps in visualizing multiple images simultaneously.
 inputs_list = [inputs[i] for i in range(inputs.size(0))]
-titles_list = [class_names[classes[i]] for i in range(classes.size(0))]
+titles_list = [class_names[classes[i]][5:] for i in range(classes.size(0))]
 # Calls the imshow function defined above to display the grid of images with class names as titles. 
 imshow(inputs_list, titles_list)
 
@@ -291,6 +291,9 @@ for images, labels in dataloaders['test']:
     correct = (predicted == labels).sum().item()
     accuracies.append(correct / labels.size(0))
 
+overall_accuracy = sum(accuracies) / len(accuracies)
+print(f'Overall model accuracy from the test run: {overall_accuracy * 100:.2f}%')
+
 # Plot testing accuracy
 plt.figure()
 plt.plot(accuracies)
@@ -312,3 +315,4 @@ _, preds = torch.max(outputs, 1)
 for j in range(len(inputs)):
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
+
