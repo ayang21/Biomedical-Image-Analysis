@@ -192,7 +192,7 @@ train_transform = transforms.Compose([
     transforms.Resize(256),
     transforms.RandomCrop(224),
     transforms.RandomHorizontalFlip(),
-    transforms.RandomRotation(10), #added extra transformation to training
+    # transforms.RandomRotation(10), #added extra transformation to training; comment out if needed
     transforms.ToTensor(),
     transforms.Normalize(mean=mean,
                          std=std)
