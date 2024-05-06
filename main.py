@@ -315,3 +315,4 @@ _, preds = torch.max(outputs, 1)
 for j in range(len(inputs)):
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
+
