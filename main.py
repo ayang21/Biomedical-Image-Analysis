@@ -8,9 +8,104 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data.sampler import SubsetRandomSampler
 
+from sklearn.model_selection import StratifiedKFold
+
 import torchvision
 from torchvision import datasets,transforms, models
 
+# Function to display images
+def imshow(inp, titles):
+    # If inp and titles are not lists, convert them to lists
+    if not isinstance(inp, list):
+        inp = [inp]
+    if not isinstance(titles, list):
+        titles = [titles]
+
+    fig, axs = plt.subplots(1, len(inp), figsize=(5 * len(inp), 5))
+
+    # If there's only one image, convert it to a list
+    if not isinstance(axs, np.ndarray):
+        axs = [axs]
+
+    for i, ax in enumerate(axs):
+        # Convert PyTorch tensor to numpy array and transpose dimensions
+        image = inp[i].cpu().numpy().transpose((1, 2, 0))
+        # Normalize the numpy array
+        image = std * image + mean
+        image = np.clip(image, 0, 1)
+        # Display the image and set the title
+        ax.imshow(image)
+        ax.set_title(titles[i])
+        # Remove the axis
+        ax.axis('off')
+
+    plt.show()
+
+def train_model(model, criterion, optimizer, train_loader, valid_loader, num_epochs=5):
+    history = {'train_loss': [], 'train_acc': [], 'validation_loss': [], 'validation_acc': []}
+
+    for epoch in range(num_epochs):
+        print('=' * 10)
+        print('epoch=',epoch + 1)
+
+        for phase in ['train', 'validation']:
+            if phase == 'train':
+                model.train()
+                dataloader = train_loader
+            else:
+                model.eval()
+                dataloader = validation_loader
+
+            cum_loss = 0.0
+            running_corrects = 0
+
+            for images, labels  in (dataloader):
+                images = images.to(device)
+                labels = labels.to(device)
+                
+                optimizer.zero_grad()
+
+                with torch.set_grad_enabled(phase == 'train'):
+                    outputs = model(images)
+                    _, pred = torch.max(outputs, 1)
+                    loss = criterion(outputs, labels)
+
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+
+                cum_loss += loss.item() * inputs.size(0)
+                running_corrects += torch.sum(pred == labels.data)
+
+            temp_loss = cum_loss / dataset_sizes[phase]
+            temp_acc = running_corrects / dataset_sizes[phase]
+
+            print('%s Epoch - %d, loss - %0.5f Acc - %0.5f'\
+                %(phase, epoch, temp_loss, temp_acc))
+
+            history[phase+'_loss'].append(temp_loss)
+            history[phase+'_acc'].append(temp_acc)
+
+    return model, history
+
+def cross_validate_model(model, criterion, optimizer, dataset, num_epochs=5, n_splits=5):
+    skf = StratifiedKFold(n_splits=n_splits)
+
+    # Get the targets of the dataset
+    targets = [target for _, target in dataset]
+
+    for fold, (train_index, valid_index) in enumerate(skf.split(np.zeros(len(dataset)), targets)):
+        print(f"\nFold {fold+1}")
+
+        train_sampler = SubsetRandomSampler(train_index)
+        valid_sampler = SubsetRandomSampler(valid_index)
+
+        train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
+        valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
+
+        model, history = train_model(model, criterion, optimizer,train_loader, valid_loader, num_epochs)
+    
+    return model, history
 
 file_ext = "png"
 
@@ -80,7 +175,7 @@ std  = [0.229, 0.224, 0.225] # WILL NEED TO CHANGE THIS
 test_size = 0.30
 random_seed = 24
 num_workers = 0
-batch_size = 8
+batch_size = 12
 
 train_transform = transforms.Compose([
     transforms.Resize(256),
@@ -130,83 +225,58 @@ dataloaders = {
     'test': test_loader,
     'validation': validation_loader
 }
+dataset_sizes = { 'train': len(train_dataset), 'validation': len(validation_dataset), 'test': len(test_dataset) }
 # Explore data set
 class_names = train_dataset.classes
-
-print(class_names)
-
-# Function to display images
-def imshow(inp, title):
-    # Converts a PyTorch tensor 'inp' to a numpy array and transposes the dimensions
-    # from (channel, height, width) to (height, width, channel) for display purposes.
-    inp = inp.cpu().numpy().transpose((1, 2, 0))
-    # Normalizes the numpy array 'inp' using the standard deviation and mean used in
-    # the normalization step of the transforms, then clips values to be between 0 and 1.
-    # This is necessary to display the image correctly after normalization, which shifts pixel values.
-    inp = std * inp + mean
-    inp = np.clip(inp, 0, 1)
-    # Creates a new figure with a specified size (12x6 inches) in which the image will be displayed.
-    plt.figure (figsize = (12, 6))
-    # Displays the image contained in 'inp'. The title of the image is set to the provided 'title'.
-    plt.imshow(inp)
-    plt.title(title) 
-    # Pauses the display for 5 seconds, allowing the image to be visible for this duration.
-    # This is useful in interactive environments where the output might otherwise be too fleeting.
-    plt.pause(5)  
 
 # Fetches a batch of inputs and their corresponding classes from the 'train' data loader.
 inputs, classes = next(iter(dataloaders['train']))
 
 # Utilizes torchvision's utility to make a grid of images from the batch, which helps in visualizing multiple images simultaneously.
-out = torchvision.utils.make_grid(inputs)
+inputs_list = [inputs[i] for i in range(inputs.size(0))]
+titles_list = [class_names[classes[i]][5:] for i in range(classes.size(0))]
 # Calls the imshow function defined above to display the grid of images with class names as titles. 
-imshow(out, title=[class_names[x] for x in classes])
-print(classes) #output=tensor([0, 2, 1, 0, 0, 1, 1, 1])
-print([class_names[x] for x in classes]) #output=['test', 'val', 'test', 'val', 'val', 'train', 'train', 'test']
-print(train_dataset.classes)
-print(train_dataset.class_to_idx)
+imshow(inputs_list, titles_list)
 
 # Finetuning the pretrained model
 
 model = models.alexnet(pretrained=True)
-model
 num_ftrs = model.classifier[6].in_features
-num_ftrs
 
 #Redefining the last layer to classify inputs into the two classes we need as opposed to the original 1000 it was trained for.
 model.classifier[6] = nn.Linear(num_ftrs, len(train_dataset.classes))
 criterion   = nn.CrossEntropyLoss()
-
 optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
-def train_model(model, criterion, optimizer, num_epochs=25):
 
-    model = model.to(device)
+#Cross validate the model during training phase to see model's generalization of data
+model, history = cross_validate_model(model, criterion, optimizer, train_dataset, num_epochs=5) # Change the num_epochs to however many per folds you wish to perform
 
-    for epoch in range(num_epochs):
-        print('epoch=',epoch)        
+# model, history = train_model(model, criterion, optimizer, num_epochs=10)
 
-        for images, labels  in (dataloaders['train']):
+# Plot training and validation loss
+plt.figure()
+plt.plot(history['train_loss'], label='train')
+plt.plot(history['validation_loss'], label='validation')
+plt.title('Loss over epochs')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
 
-                images = images.to(device)
-                labels = labels.to(device)
-    
-                outputs = model(images)
-                outputs = outputs.to(device)
-                loss = criterion(outputs,labels)
+# Plot training and validation accuracy
+plt.figure()
+plt.plot(history['train_acc'], label='train')
+plt.plot(history['validation_acc'], label='validation')
+plt.title('Accuracy over epochs')
+plt.xlabel('Epochs')
+plt.ylabel('Accuracy')
+plt.legend()
+plt.show()
 
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-        print('Epoch - %d, loss - %0.5f '\
-            %(epoch, loss.item()))
-
-    return model
-model = train_model(model, criterion, optimizer, num_epochs=10)
 # Model Evaluation
 model.eval() #batchnorm or dropout layers will now work in eval mode instead of training mode.
 torch.no_grad() #sets all the requires_grad flag to false and stops all gradient calculation.
-correct = 0
+accuracies = []
 total = 0
 
 for images, labels in dataloaders['test']:
@@ -218,20 +288,30 @@ for images, labels in dataloaders['test']:
     _, predicted = torch.max(outputs.data, 1)
 
     total += labels.size(0)
-    correct += (predicted == labels).sum().item()
+    correct = (predicted == labels).sum().item()
+    accuracies.append(correct / labels.size(0))
 
-print('Accuracy of the model on the test images: {}%'\
-      .format(100 * correct / total))
+overall_accuracy = sum(accuracies) / len(accuracies)
+print(f'Overall model accuracy from the test run: {overall_accuracy * 100:.2f}%')
+
+# Plot testing accuracy
+plt.figure()
+plt.plot(accuracies)
+plt.title('Accuracy over test data')
+plt.xlabel('Batch')
+plt.ylabel('Accuracy')
+plt.show()
+
 inputs, labels = next(iter(dataloaders['test']))
 
 inputs = inputs.to(device)
+labels = labels.to(device)
+
 inp = torchvision.utils.make_grid(inputs)
 
 outputs = model(inputs)
 _, preds = torch.max(outputs, 1)
 
 for j in range(len(inputs)):
-    print ("Actual label", np.array(labels)[j])
-
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
