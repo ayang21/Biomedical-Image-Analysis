@@ -9,6 +9,7 @@ import torch.optim as optim
 from torch.utils.data.sampler import SubsetRandomSampler
 
 from sklearn.model_selection import StratifiedKFold
+from torch.optim.lr_scheduler import StepLR
 
 import torchvision
 from torchvision import datasets,transforms, models
@@ -41,7 +42,7 @@ def imshow(inp, titles):
 
     plt.show()
 
-def train_model(model, criterion, optimizer, train_loader, valid_loader, num_epochs=5):
+def train_model(model, criterion, optimizer, scheduler, train_loader, valid_loader, num_epochs=5):
     history = {'train_loss': [], 'train_acc': [], 'validation_loss': [], 'validation_acc': []}
 
     for epoch in range(num_epochs):
@@ -76,6 +77,8 @@ def train_model(model, criterion, optimizer, train_loader, valid_loader, num_epo
 
                 cum_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(pred == labels.data)
+            
+            # scheduler.step()  # Step the scheduler; comment out if needed
 
             temp_loss = cum_loss / dataset_sizes[phase]
             temp_acc = running_corrects / dataset_sizes[phase]
@@ -86,9 +89,17 @@ def train_model(model, criterion, optimizer, train_loader, valid_loader, num_epo
             history[phase+'_loss'].append(temp_loss)
             history[phase+'_acc'].append(temp_acc)
 
+        # # Optionally unfreeze layers after 5 epochs; comment out if needed
+        # if epoch >= 2:
+        #     for name, child in model.named_children():
+        #         if name in ['layer4', 'fc']:
+        #             for param in child.parameters():
+        #                 param.requires_grad = True
+        #     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.0001)
+
     return model, history
 
-def cross_validate_model(model, criterion, optimizer, dataset, num_epochs=5, n_splits=5):
+def cross_validate_model(model, criterion, optimizer, scheduler, dataset, num_epochs=5, n_splits=5):
     skf = StratifiedKFold(n_splits=n_splits)
 
     # Get the targets of the dataset
@@ -103,7 +114,7 @@ def cross_validate_model(model, criterion, optimizer, dataset, num_epochs=5, n_s
         train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=train_sampler)
         valid_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=valid_sampler)
 
-        model, history = train_model(model, criterion, optimizer,train_loader, valid_loader, num_epochs)
+        model, history = train_model(model, criterion, optimizer, scheduler, train_loader, valid_loader, num_epochs)
     
     return model, history
 
@@ -181,6 +192,7 @@ train_transform = transforms.Compose([
     transforms.Resize(256),
     transforms.RandomCrop(224),
     transforms.RandomHorizontalFlip(),
+    transforms.RandomRotation(10), #added extra transformation to training
     transforms.ToTensor(),
     transforms.Normalize(mean=mean,
                          std=std)
@@ -248,8 +260,26 @@ model.classifier[6] = nn.Linear(num_ftrs, len(train_dataset.classes))
 criterion   = nn.CrossEntropyLoss()
 optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
 
+# # Use ResNet50 with pretrained weights; comment out if needed
+# model = models.resnet50(pretrained=True)
+# for param in model.parameters():
+#     param.requires_grad = False  # Initially freeze all parameters
+
+# # Replace the last fully connected layer
+# num_ftrs = model.fc.in_features
+# model.fc = nn.Linear(num_ftrs, len(train_dataset.classes))  # Adjust to your number of classes
+
+# # Loss function
+# criterion = nn.CrossEntropyLoss()
+
+# # Use Adam optimizer for the classifier
+# optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.001)
+
+# # Initialize the scheduler
+scheduler = StepLR(optimizer, step_size=3, gamma=0.1)  # Adjust every 3 epochs, reduce lr by a factor of 0.1; comment out if needed
+
 #Cross validate the model during training phase to see model's generalization of data
-model, history = cross_validate_model(model, criterion, optimizer, train_dataset, num_epochs=5) # Change the num_epochs to however many per folds you wish to perform
+model, history = cross_validate_model(model, criterion, optimizer, scheduler, train_dataset, num_epochs=5) # Change the num_epochs to however many per folds you wish to perform
 
 # model, history = train_model(model, criterion, optimizer, num_epochs=10)
 
