@@ -14,6 +14,10 @@ from torch.optim.lr_scheduler import StepLR
 import torchvision
 from torchvision import datasets,transforms, models
 
+from torch.optim.lr_scheduler import LambdaLR
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torch.optim.lr_scheduler import CyclicLR
+
 # Function to display images
 def imshow(inp, titles):
     # If inp and titles are not lists, convert them to lists
@@ -78,7 +82,11 @@ def train_model(model, criterion, optimizer, scheduler, train_loader, valid_load
                 cum_loss += loss.item() * inputs.size(0)
                 running_corrects += torch.sum(pred == labels.data)
             
-            # scheduler.step()  # Step the scheduler; comment out if needed
+            # # Optional: choose one of these schedulers to use in training 
+            # scheduler.step()  # step-based learning scheduler; comment out if needed
+            # clr_scheduler.step() # cyclic learning scheduler; comment out if needed
+            # cosine_scheduler.step() # cosine annealing scheduler; comment out if needed
+            # warmup_scheduler.step() # learning rate warm up scheduler; comment out if needed
 
             temp_loss = cum_loss / dataset_sizes[phase]
             temp_acc = running_corrects / dataset_sizes[phase]
@@ -260,8 +268,13 @@ model.classifier[6] = nn.Linear(num_ftrs, len(train_dataset.classes))
 criterion   = nn.CrossEntropyLoss()
 optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
 
-# # Use ResNet50 with pretrained weights; comment out if needed
+# # You can use ResNet50 with pretrained weights; comment out if needed
 # model = models.resnet50(pretrained=True)
+
+# # Alternatively, you can use Densenet as the model; comment out if needed
+# Initialize DenseNet model
+# model = models.densenet121(pretrained=True)
+
 # for param in model.parameters():
 #     param.requires_grad = False  # Initially freeze all parameters
 
@@ -269,14 +282,29 @@ optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
 # num_ftrs = model.fc.in_features
 # model.fc = nn.Linear(num_ftrs, len(train_dataset.classes))  # Adjust to your number of classes
 
+# # Optional: use class weights
+# class_weights = torch.tensor([1.0, 1.0, 1.0])  # Initialize with equal weights
+# # three classes: normal, sick, and tuberculosis
+# # Calculate the inverse of class frequencies as weights
+# total_samples = len(train_dataset)
+# class_counts = [len([label for _, label in train_dataset if label == i]) for i in range(len(class_weights))]
+# class_weights = total_samples / (torch.tensor(class_counts, dtype=torch.float32) + 1e-6)
+
 # # Loss function
-# criterion = nn.CrossEntropyLoss()
+# criterion = nn.CrossEntropyLoss() #Optional: can use weight=class_weights.to(device) as parameter if using class weights
 
-# # Use Adam optimizer for the classifier
-# optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.001)
+# # Can alternatively use Adam optimizer for the classifier
+# optimizer = torch.optim.Adam(model.fc.parameters(), lr=0.001, weight_decay=0.0001)
 
-# # Initialize the scheduler
+# # Optional: Initialize either on of these four schedulers
+# # Step-based:
 scheduler = StepLR(optimizer, step_size=3, gamma=0.1)  # Adjust every 3 epochs, reduce lr by a factor of 0.1; comment out if needed
+# # Cyclic learning 
+# clr_scheduler = CyclicLR(optimizer, base_lr=0.001, max_lr=0.01, step_size_up=2000)
+# # Cosine annealing
+# cosine_scheduler = CosineAnnealingLR(optimizer, T_max=5, eta_min=0.0001)
+# # Learning rate warm up
+# warmup_scheduler = LambdaLR(optimizer, lr_lambda=lambda epoch: epoch / warmup_epochs if epoch < warmup_epochs else 1)
 
 #Cross validate the model during training phase to see model's generalization of data
 model, history = cross_validate_model(model, criterion, optimizer, scheduler, train_dataset, num_epochs=5) # Change the num_epochs to however many per folds you wish to perform
