@@ -7,4 +7,4 @@ TBX11K is a dataset for object detection task that is based off of https://githu
 - Run ```python main.py``` and wait patiently for the results!
 
 # Contribution:
-Work on main.py has been split between all 3 contributors. 
+Work on main.py has been split between all 3 contributors and can be found on the 'insights' tab.
