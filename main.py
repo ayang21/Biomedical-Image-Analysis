@@ -270,17 +270,18 @@ optimizer   = torch.optim.SGD(model.parameters(), lr=0.001, momentum = 0.9)
 
 # # You can use ResNet50 with pretrained weights; comment out if needed
 # model = models.resnet50(pretrained=True)
+# num_ftrs = model.fc.in_features
+# model.fc = nn.Linear(num_ftrs, len(train_dataset.classes))  # Adjust to your number of classes
 
 # # Alternatively, you can use Densenet as the model; comment out if needed
 # Initialize DenseNet model
 # model = models.densenet121(pretrained=True)
+# num_ftrs = model.classifier.in_features
+# model.classifier = nn.Linear(num_ftrs, len(train_dataset.classes))
 
+# # Optional 
 # for param in model.parameters():
 #     param.requires_grad = False  # Initially freeze all parameters
-
-# # Replace the last fully connected layer
-# num_ftrs = model.fc.in_features
-# model.fc = nn.Linear(num_ftrs, len(train_dataset.classes))  # Adjust to your number of classes
 
 # # Optional: use class weights
 # class_weights = torch.tensor([1.0, 1.0, 1.0])  # Initialize with equal weights
