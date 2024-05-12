@@ -10,9 +10,12 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 from sklearn.model_selection import StratifiedKFold
 from torch.optim.lr_scheduler import StepLR
+from sklearn.metrics import confusion_matrix
 
 import torchvision
 from torchvision import datasets,transforms, models
+from torchsummary import summary
+
 
 from torch.optim.lr_scheduler import LambdaLR
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -194,7 +197,7 @@ std  = [0.229, 0.224, 0.225] # WILL NEED TO CHANGE THIS
 test_size = 0.30
 random_seed = 24
 num_workers = 0
-batch_size = 12
+batch_size = 16
 
 train_transform = transforms.Compose([
     transforms.Resize(256),
@@ -262,6 +265,8 @@ imshow(inputs_list, titles_list)
 
 model = models.alexnet(pretrained=True)
 num_ftrs = model.classifier[6].in_features
+
+summary(model, (3, 224, 224))
 
 #Redefining the last layer to classify inputs into the two classes we need as opposed to the original 1000 it was trained for.
 model.classifier[6] = nn.Linear(num_ftrs, len(train_dataset.classes))
@@ -334,24 +339,32 @@ plt.show()
 
 # Model Evaluation
 model.eval() #batchnorm or dropout layers will now work in eval mode instead of training mode.
-torch.no_grad() #sets all the requires_grad flag to false and stops all gradient calculation.
-accuracies = []
-total = 0
+with torch.no_grad(): #sets all the requires_grad flag to false and stops all gradient calculation.
+    accuracies = []
+    total = 0
+    y_true = []
+    y_pred = []
 
-for images, labels in dataloaders['test']:
+    for images, labels in dataloaders['test']:
+        images = images.to(device)
+        labels = labels.to(device)
 
-    images = images.to(device)
-    labels = labels.to(device)
+        outputs = model(images)
+        _, predicted = torch.max(outputs.data, 1)
+        y_true.extend(labels.tolist())
+        y_pred.extend(predicted.tolist())
+        
+        total += labels.size(0)
+        correct = (predicted == labels).sum().item()
+        accuracies.append(correct / labels.size(0))
 
-    outputs = model(images)
-    _, predicted = torch.max(outputs.data, 1)
+    overall_accuracy = sum(accuracies) / len(accuracies)
+    print(f'Overall model accuracy from the test run: {overall_accuracy * 100:.2f}%')
 
-    total += labels.size(0)
-    correct = (predicted == labels).sum().item()
-    accuracies.append(correct / labels.size(0))
-
-overall_accuracy = sum(accuracies) / len(accuracies)
-print(f'Overall model accuracy from the test run: {overall_accuracy * 100:.2f}%')
+    # Generate the confusion matrix
+    cm = confusion_matrix(y_true, y_pred)
+    print("Confusion Matrix:")
+    print(cm)
 
 # Plot testing accuracy
 plt.figure()
@@ -374,4 +387,3 @@ _, preds = torch.max(outputs, 1)
 for j in range(len(inputs)):
     inp = inputs.data[j]
     imshow(inp, 'predicted:' + class_names[preds[j]])
-
